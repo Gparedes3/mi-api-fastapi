@@ -1,64 +1,34 @@
 # main.py
-
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List, Dict, Union
-
-# Creamos un "diccionario" en memoria para simular una base de datos.
-# Usaremos un simple contador para asignar IDs.
-fake_db = {}
-item_counter = 0
-
-# Definimos el modelo de datos para los ítems de nuestra API.
-# En este caso, usaremos "Items" genéricos para que se adapte a cualquier cosa.
-class Item(BaseModel):
-    name: str
-    price: float
-    is_offer: Union[bool, None] = None
-
-class ItemInDB(Item):
-    id: int
+from fastapi import FastAPI
 
 app = FastAPI()
 
-# Operaciones CRUD
+db = {}
+counter = 0
 
-# 1. Crear un nuevo ítem
-@app.post("/items/", response_model=ItemInDB)
-def create_item(item: Item):
-    global item_counter
-    item_counter += 1
-    new_item = item.model_dump()
-    new_item["id"] = item_counter
-    fake_db[item_counter] = new_item
-    return new_item
+@app.post("/items/")
+def create_item(item: dict):
+    global counter
+    counter += 1
+    item["id"] = counter
+    db[counter] = item
+    return item
 
-# 2. Leer todos los ítems
-@app.get("/items/", response_model=List[ItemInDB])
+@app.get("/items/")
 def read_items():
-    return list(fake_db.values())
+    return list(db.values())
 
-# 3. Leer un ítem por su ID
-@app.get("/items/{item_id}", response_model=ItemInDB)
+@app.get("/items/{item_id}")
 def read_item(item_id: int):
-    if item_id not in fake_db:
-        raise HTTPException(status_code=404, detail="Item not found")
-    return fake_db[item_id]
+    return db[item_id]
 
-# 4. Actualizar un ítem
-@app.put("/items/{item_id}", response_model=ItemInDB)
-def update_item(item_id: int, item: Item):
-    if item_id not in fake_db:
-        raise HTTPException(status_code=404, detail="Item not found")
-    updated_item = item.model_dump()
-    updated_item["id"] = item_id
-    fake_db[item_id] = updated_item
-    return updated_item
+@app.put("/items/{item_id}")
+def update_item(item_id: int, item: dict):
+    item["id"] = item_id
+    db[item_id] = item
+    return item
 
-# 5. Eliminar un ítem
 @app.delete("/items/{item_id}")
 def delete_item(item_id: int):
-    if item_id not in fake_db:
-        raise HTTPException(status_code=404, detail="Item not found")
-    del fake_db[item_id]
-    return {"message": "Item deleted successfully"}
+    del db[item_id]
+    return {"message": "Deleted"}
